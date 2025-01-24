@@ -1,0 +1,60 @@
+{
+  "name": "typescript-nextjs-starter",
+  "description": "A TypeScript starter for Next.js that includes all you need to build amazing projects",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "author": "João Pedro Schmitz (@jpedroschmitz)",
+  "license": "MIT",
+  "keywords": [
+    "nextjs",
+    "starter",
+    "typescript"
+  ],
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.+(ts|js|tsx)\"",
+    "lint:fix": "eslint \"src/**/*.+(ts|js|tsx)\" --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "format:ci": "prettier --list-different .",
+    "postinstall": "husky"
+  },
+  "lint-staged": {
+    "./src/**/*.{ts,js,jsx,tsx}": [
+      "eslint \"src/**/*.+(ts|js|tsx)\" --fix",
+      "prettier . --write"
+    ]
+  },
+  "dependencies": {
+    "@t3-oss/env-nextjs": "0.11.1",
+    "next": "15.1.5",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "19.6.1",
+    "@commitlint/config-conventional": "19.6.0",
+    "@eslint/eslintrc": "3.2.0",
+    "@eslint/js": "9.18.0",
+    "@ianvs/prettier-plugin-sort-imports": "4.4.1",
+    "@types/node": "22.10.7",
+    "@types/react": "19.0.7",
+    "@types/react-dom": "19.0.3",
+    "@typescript-eslint/eslint-plugin": "8.21.0",
+    "@typescript-eslint/parser": "8.21.0",
+    "eslint": "9.18.0",
+    "eslint-config-next": "15.1.5",
+    "eslint-config-prettier": "10.0.1",
+    "eslint-plugin-prettier": "5.2.3",
+    "husky": "9.1.7",
+    "lint-staged": "15.4.1",
+    "prettier": "3.4.2",
+    "prettier-plugin-sort-json": "4.1.1",
+    "typescript": "5.7.3"
+  }
+}
