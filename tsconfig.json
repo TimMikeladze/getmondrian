@@ -31,5 +31,14 @@
     }
   },
   "exclude": ["node_modules"],
-  "include": [".eslintrc.mjs", "next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.js", ".next/types/**/*.ts"]
+  "include": [
+    ".eslintrc.mjs",
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.cjs",
+    "**/*.js",
+    ".next/types/**/*.ts",
+    "postcss.config.mjs"
+  ]
 }
