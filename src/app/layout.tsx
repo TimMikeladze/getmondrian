@@ -8,8 +8,8 @@ import Script from 'next/script';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: ``,
-  description: ``,
+  title: `Mondrian Art Generator`,
+  description: `Art generator inspired by the works of Piet Mondrian, a Dutch artist known for his abstract paintings featuring rectangles, primary colors, and bold black lines. This tool allows you to create your own Mondrian-style compositions by adjusting various parameters like complexity, colors, and border styles. Each pattern is unique and can be shared or downloaded in multiple formats.`,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

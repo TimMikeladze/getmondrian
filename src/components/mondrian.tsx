@@ -1,41 +1,23 @@
-import { Check, ChevronDown, Download, Github, Link, Plus, RefreshCw, Sliders, Twitter, X } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  Download,
+  Github,
+  HelpCircle,
+  Link,
+  Paintbrush,
+  Plus,
+  RefreshCw,
+  Sliders,
+  Twitter,
+  X,
+} from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
+import { DEFAULT_COLORS, generateGrid, getValidColor, MondrianState } from '@/lib/mondrian';
+import { DEFAULT_VALUES, parseUrlParams, stateToUrlParams } from '@/lib/url-params';
+
 import type { SVGProps } from 'react';
-
-interface Cell {
-  id: string;
-  color: string;
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-  colorIndex: number;
-}
-
-interface MondrianState {
-  complexity: number;
-  colors: string[];
-  borderWidth: number;
-  borderColor: string;
-  minSplitRatio: number;
-  maxSplitRatio: number;
-  splitProbability: number;
-  minSize: number;
-  externalBorderWidth: number;
-  borderRadius: number;
-  seed: number;
-  fullscreen?: boolean;
-  title?: string;
-}
-
-const DEFAULT_COLORS: string[] = ['#ffffff', '#e72f24', '#f0d53c', '#234d9c'];
-
-function getValidColor(colors: string[], index: number): string {
-  if (colors.length === 0) return DEFAULT_COLORS[0]!;
-  const safeIndex = Math.max(0, Math.min(index, colors.length - 1));
-  return colors[safeIndex]!;
-}
 
 function generateRandomColor(existingColors: string[]): string {
   // If no existing colors, return a default color
@@ -133,137 +115,6 @@ function generateRandomColor(existingColors: string[]): string {
   return `hsl(${Math.round(newHue)}, ${Math.round(avgSaturation)}%, ${Math.round(avgLightness)}%)`;
 }
 
-// Seeded random number generator
-function mulberry32(a: number) {
-  return function () {
-    let t = (a += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function generateGrid(
-  depth: number,
-  colors: string[],
-  minSplitRatio: number,
-  maxSplitRatio: number,
-  splitProbability: number,
-  minSize: number,
-  seed: number
-): Cell[] {
-  const colorsToUse = colors?.length > 0 ? colors : DEFAULT_COLORS;
-  const cells: Cell[] = [];
-  const random = mulberry32(seed);
-
-  // Use relative units (0-100) for coordinates and sizes
-  const subdivide = (x: number, y: number, width: number, height: number, depth: number) => {
-    if (depth <= 0 || (random() > splitProbability && depth < 3)) {
-      const colorIndex = Math.min(Math.floor(random() * colorsToUse.length), colorsToUse.length - 1);
-      cells.push({
-        id: `${x}-${y}-${width}-${height}`,
-        color: colorsToUse[colorIndex]!,
-        colorIndex,
-        width,
-        height,
-        x,
-        y,
-      });
-      return;
-    }
-
-    if (random() > 0.5 && width > minSize / 8) {
-      // Adjust minSize threshold for relative units
-      const split = width * (minSplitRatio + random() * (maxSplitRatio - minSplitRatio));
-      subdivide(x, y, split, height, depth - 1);
-      subdivide(x + split, y, width - split, height, depth - 1);
-    } else if (height > minSize / 8) {
-      // Adjust minSize threshold for relative units
-      const split = height * (minSplitRatio + random() * (maxSplitRatio - minSplitRatio));
-      subdivide(x, y, width, split, depth - 1);
-      subdivide(x, y + split, width, height - split, depth - 1);
-    } else {
-      const colorIndex = Math.min(Math.floor(random() * colorsToUse.length), colorsToUse.length - 1);
-      cells.push({
-        id: `${x}-${y}-${width}-${height}`,
-        color: colorsToUse[colorIndex]!,
-        colorIndex,
-        width,
-        height,
-        x,
-        y,
-      });
-    }
-  };
-
-  // Start with 100x100 relative units instead of 800x800 fixed units
-  subdivide(0, 0, 100, 100, depth);
-  return cells;
-}
-
-function stateToUrlParams(state: MondrianState, forSharing: boolean = false): string {
-  const params = new URLSearchParams();
-
-  if (forSharing) {
-    // When sharing, include all state values
-    params.set('c', state.complexity.toString());
-    params.set('colors', state.colors.join(','));
-    params.set('bw', state.borderWidth.toString());
-    params.set('bc', state.borderColor.replace('#', ''));
-    params.set('minr', state.minSplitRatio.toString());
-    params.set('maxr', state.maxSplitRatio.toString());
-    params.set('sp', state.splitProbability.toString());
-    params.set('ms', state.minSize.toString());
-    params.set('ebw', state.externalBorderWidth.toString());
-    params.set('br', state.borderRadius.toString());
-    params.set('seed', state.seed.toString());
-    if (state.fullscreen) params.set('fs', '1');
-    if (state.title && state.title !== 'Mondrian') params.set('title', state.title);
-  } else {
-    // For normal URL updates, only include non-default values
-    if (state.complexity !== 4) params.set('c', state.complexity.toString());
-    if (state.colors.join(',') !== DEFAULT_COLORS.join(',')) params.set('colors', state.colors.join(','));
-    if (state.borderWidth !== 12) params.set('bw', state.borderWidth.toString());
-    if (state.borderColor !== '#121212') params.set('bc', state.borderColor.replace('#', ''));
-    if (state.minSplitRatio !== 0.35) params.set('minr', state.minSplitRatio.toString());
-    if (state.maxSplitRatio !== 0.65) params.set('maxr', state.maxSplitRatio.toString());
-    if (state.splitProbability !== 0.5) params.set('sp', state.splitProbability.toString());
-    if (state.minSize !== 150) params.set('ms', state.minSize.toString());
-    if (state.externalBorderWidth !== 16) params.set('ebw', state.externalBorderWidth.toString());
-    if (state.borderRadius !== 0) params.set('br', state.borderRadius.toString());
-    params.set('seed', state.seed.toString()); // Always include seed
-    if (state.fullscreen) params.set('fs', '1');
-    if (state.title && state.title !== 'Mondrian') params.set('title', state.title);
-  }
-
-  return params.toString();
-}
-
-function urlParamsToState(params: URLSearchParams): Partial<MondrianState> {
-  const state: Partial<MondrianState> = {};
-
-  if (params.has('c')) state.complexity = Number(params.get('c'));
-  if (params.has('colors')) state.colors = params.get('colors')!.split(',');
-  if (params.has('bw')) state.borderWidth = Number(params.get('bw'));
-  if (params.has('bc')) state.borderColor = '#' + params.get('bc');
-  if (params.has('minr')) state.minSplitRatio = Number(params.get('minr'));
-  if (params.has('maxr')) state.maxSplitRatio = Number(params.get('maxr'));
-  if (params.has('sp')) state.splitProbability = Number(params.get('sp'));
-  if (params.has('ms')) state.minSize = Number(params.get('ms'));
-  if (params.has('ebw')) state.externalBorderWidth = Number(params.get('ebw'));
-  if (params.has('br')) state.borderRadius = Number(params.get('br'));
-  if (params.has('fs')) state.fullscreen = params.get('fs') === '1';
-  if (params.has('seed')) state.seed = Number(params.get('seed'));
-  if (params.has('title')) {
-    const titleParam = params.get('title');
-    if (titleParam !== null) {
-      state.title = titleParam;
-    }
-  }
-
-  return state;
-}
-
 function Tooltip({ children, content }: { children: React.ReactNode; content: string }) {
   const [show, setShow] = useState(false);
 
@@ -280,12 +131,94 @@ function Tooltip({ children, content }: { children: React.ReactNode; content: st
   );
 }
 
+function AboutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-start">
+            <h2 className="text-xl font-bold text-gray-900">About</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="mt-4 text-gray-600 space-y-4">
+            <p>
+              Mondrian is an art generator inspired by the works of{' '}
+              <a
+                href="https://en.wikipedia.org/wiki/Piet_Mondrian"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                Piet Mondrian
+              </a>
+              , a Dutch artist known for his abstract paintings featuring rectangles, primary colors, and bold black
+              lines.
+            </p>
+            <p>
+              This tool allows you to create your own Mondrian-style compositions by adjusting various parameters like
+              complexity, colors, and border styles. Each pattern is unique and can be shared or downloaded in multiple
+              formats.
+            </p>
+            <div className="pt-2">
+              <div className="text-xs font-medium text-gray-900 mb-3">Follow me at</div>
+              <div className="flex items-center gap-3">
+                <a
+                  href="https://github.com/TimMikeladze"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                >
+                  <Github className="w-5 h-5" />
+                  <span className="text-sm">GitHub</span>
+                </a>
+                <a
+                  href="https://twitter.com/linesofcode"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                >
+                  <Twitter className="w-5 h-5" />
+                  <span className="text-sm">Twitter</span>
+                </a>
+                <a
+                  href="https://bsky.app/profile/linesofcode.bsky.social"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                >
+                  <ProiconsBluesky className="w-5 h-5" />
+                  <span className="text-sm">Bluesky</span>
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/tim-mikeladze"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                  </svg>
+                  <span className="text-sm">LinkedIn</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MondrianGenerator() {
   // Get initial state from URL if available
   const initialState = (() => {
     if (typeof window === 'undefined') return {};
     const params = new URLSearchParams(window.location.search);
-    const state = params.toString() ? urlParamsToState(params) : {};
+    const state = params.toString() ? parseUrlParams(params) : {};
     // If we have URL params, ensure we have a seed
     if (params.toString()) {
       state.seed = params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 1000000);
@@ -293,17 +226,21 @@ export function MondrianGenerator() {
     return state;
   })();
 
-  const [complexity, setComplexity] = useState(initialState.complexity ?? 4);
+  const [complexity, setComplexity] = useState(initialState.complexity ?? DEFAULT_VALUES.complexity);
   const [colors, setColors] = useState(initialState.colors ?? DEFAULT_COLORS);
-  const [borderWidth, setBorderWidth] = useState(initialState.borderWidth ?? 12);
-  const [borderColor, setBorderColor] = useState(initialState.borderColor ?? '#121212');
-  const [minSplitRatio, setMinSplitRatio] = useState(initialState.minSplitRatio ?? 0.35);
-  const [maxSplitRatio, setMaxSplitRatio] = useState(initialState.maxSplitRatio ?? 0.65);
-  const [splitProbability, setSplitProbability] = useState(initialState.splitProbability ?? 0.5);
-  const [minSize, setMinSize] = useState(initialState.minSize ?? 150);
+  const [borderWidth, setBorderWidth] = useState(initialState.borderWidth ?? DEFAULT_VALUES.borderWidth);
+  const [borderColor, setBorderColor] = useState(initialState.borderColor ?? DEFAULT_VALUES.borderColor);
+  const [minSplitRatio, setMinSplitRatio] = useState(initialState.minSplitRatio ?? DEFAULT_VALUES.minSplitRatio);
+  const [maxSplitRatio, setMaxSplitRatio] = useState(initialState.maxSplitRatio ?? DEFAULT_VALUES.maxSplitRatio);
+  const [splitProbability, setSplitProbability] = useState(
+    initialState.splitProbability ?? DEFAULT_VALUES.splitProbability
+  );
+  const [minSize, setMinSize] = useState(initialState.minSize ?? DEFAULT_VALUES.minSize);
   const [showControls, setShowControls] = useState(false);
-  const [externalBorderWidth, setExternalBorderWidth] = useState(initialState.externalBorderWidth ?? 16);
-  const [borderRadius, setBorderRadius] = useState(initialState.borderRadius ?? 0);
+  const [externalBorderWidth, setExternalBorderWidth] = useState(
+    initialState.externalBorderWidth ?? DEFAULT_VALUES.externalBorderWidth
+  );
+  const [borderRadius, setBorderRadius] = useState(initialState.borderRadius ?? DEFAULT_VALUES.borderRadius);
   const [seed, setSeed] = useState(initialState.seed ?? Math.floor(Math.random() * 1000000));
   const [copySuccess, setCopySuccess] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(initialState.fullscreen ?? false);
@@ -312,7 +249,9 @@ export function MondrianGenerator() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [showFullscreenHint, setShowFullscreenHint] = useState(false);
-  const [title, setTitle] = useState(initialState.title ?? 'Mondrian');
+  const [title, setTitle] = useState(initialState.title ?? DEFAULT_VALUES.title);
+  const [showAboutDialog, setShowAboutDialog] = useState(false);
+  const [isPaintMode, setIsPaintMode] = useState(false);
 
   // Initialize cells with URL state if available
   const [cells, setCells] = useState(() => {
@@ -373,8 +312,16 @@ export function MondrianGenerator() {
   // Handle keyboard events for exiting fullscreen
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        toggleFullscreen();
+      if (e.key === 'Escape') {
+        if (isFullscreen) {
+          toggleFullscreen();
+        } else {
+          // Close all dialogs and menus
+          setShowAboutDialog(false);
+          setShowShareMenu(false);
+          setShowDownloadMenu(false);
+          setShowControls(false);
+        }
       }
     };
 
@@ -396,9 +343,10 @@ export function MondrianGenerator() {
     if (!touchStart || !touchEnd) return;
 
     const distance = touchEnd - touchStart;
-    const isDownSwipe = distance > 100; // Minimum 100px swipe
+    const isDownSwipe = distance > 100; // Minimum 100px swipe down
+    const isUpSwipe = distance < -100; // Minimum 100px swipe up
 
-    if (isDownSwipe && isFullscreen) {
+    if ((isDownSwipe || isUpSwipe) && isFullscreen) {
       toggleFullscreen();
     }
 
@@ -516,7 +464,7 @@ export function MondrianGenerator() {
     URL.revokeObjectURL(svgUrl);
   };
 
-  const copyUrlToClipboard = (includeFullscreen: boolean = false) => {
+  const copyUrlToClipboard = (includeFullscreen: boolean = false, format?: 'svg' | 'png' | 'webp') => {
     const state: MondrianState = {
       complexity,
       colors,
@@ -533,7 +481,9 @@ export function MondrianGenerator() {
       title,
     };
     const params = stateToUrlParams(state, true);
-    const url = `${window.location.origin}${window.location.pathname}${params ? `?${params}` : ''}`;
+    const url = format
+      ? `${window.location.origin}/${format}?${params}`
+      : `${window.location.origin}${window.location.pathname}${params ? `?${params}` : ''}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
@@ -556,6 +506,26 @@ export function MondrianGenerator() {
     }
   }, [isFullscreen]);
 
+  // Add click handler for rectangles
+  const handleRectClick = (cellId: string) => {
+    if (!isPaintMode) return;
+
+    setCells((prevCells) => {
+      return prevCells.map((cell) => {
+        if (cell.id === cellId) {
+          // Get next color index
+          const nextColorIndex = (cell.colorIndex + 1) % colors.length;
+          return {
+            ...cell,
+            colorIndex: nextColorIndex,
+            color: colors[nextColorIndex]!,
+          };
+        }
+        return cell;
+      });
+    });
+  };
+
   return (
     <div className="h-[100svh] w-screen flex flex-col bg-gray-100 overflow-hidden">
       {/* Toolbar */}
@@ -563,9 +533,9 @@ export function MondrianGenerator() {
         <div className="w-full bg-white shadow-md z-10 flex-none border-b border-gray-200">
           <div className="max-w-screen-2xl mx-auto">
             {/* Main Toolbar */}
-            <div className="h-12 px-4 flex items-center justify-between gap-2 md:gap-4">
+            <div className="h-12 px-3 flex items-center justify-between gap-1 md:gap-3">
               {/* Left Section */}
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
                 <input
                   type="text"
                   value={title}
@@ -576,227 +546,255 @@ export function MondrianGenerator() {
                 <div className="h-4 w-px bg-gray-300 hidden sm:block" />
               </div>
 
-              {/* Center Section - Quick Controls */}
-              <div className="hidden md:flex items-center gap-6">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-medium text-gray-500">Complexity</label>
-                  <input
-                    type="range"
-                    min="2"
-                    max="8"
-                    value={complexity}
-                    onChange={(e) => {
-                      const newComplexity = Number(e.target.value);
-                      setComplexity(newComplexity);
-                      setCells(
-                        generateGrid(
-                          newComplexity,
-                          colors,
-                          minSplitRatio,
-                          maxSplitRatio,
-                          splitProbability,
-                          minSize,
-                          seed
-                        )
-                      );
-                    }}
-                    className="w-24 h-1.5"
-                  />
+              {/* Right Section */}
+              <div className="flex items-center gap-1">
+                {/* Quick Controls - Desktop */}
+                <div className="hidden md:flex items-center gap-3 pr-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-medium text-gray-500">Complexity</label>
+                    <input
+                      type="range"
+                      min="2"
+                      max="15"
+                      value={complexity}
+                      onChange={(e) => {
+                        const newComplexity = Number(e.target.value);
+                        setComplexity(newComplexity);
+                        setCells(
+                          generateGrid(
+                            newComplexity,
+                            colors,
+                            minSplitRatio,
+                            maxSplitRatio,
+                            splitProbability,
+                            minSize,
+                            seed
+                          )
+                        );
+                      }}
+                      className="w-24 h-1.5"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-medium text-gray-500">Border</label>
+                    <input
+                      type="range"
+                      min="2"
+                      max="120"
+                      value={borderWidth}
+                      onChange={(e) => setBorderWidth(Number(e.target.value))}
+                      className="w-24 h-1.5"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-0.5">
+                    {colors.map((color, index) => (
+                      <div key={index} className="group relative">
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) => handleColorChange(index, e.target.value)}
+                          className="w-6 h-6 rounded-md cursor-pointer border border-gray-200"
+                        />
+                        {colors.length > 1 && (
+                          <button
+                            onClick={() => removeColor(index)}
+                            className="absolute -top-1 -right-1 hidden group-hover:flex w-3 h-3 items-center justify-center bg-red-500 text-white rounded-full hover:bg-red-600"
+                          >
+                            <X className="w-2 h-2" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      onClick={addColor}
+                      className="w-6 h-6 flex items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50"
+                    >
+                      <Plus className="w-3 h-3 text-gray-400" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-medium text-gray-500">Border</label>
-                  <input
-                    type="range"
-                    min="2"
-                    max="20"
-                    value={borderWidth}
-                    onChange={(e) => setBorderWidth(Number(e.target.value))}
-                    className="w-24 h-1.5"
-                  />
-                </div>
+                <div className="h-4 w-px bg-gray-200 hidden md:block" />
 
                 <div className="flex items-center gap-1">
-                  {colors.map((color, index) => (
-                    <div key={index} className="group relative">
-                      <input
-                        type="color"
-                        value={color}
-                        onChange={(e) => handleColorChange(index, e.target.value)}
-                        className="w-6 h-6 rounded-md cursor-pointer border border-gray-200"
-                      />
-                      {colors.length > 1 && (
-                        <button
-                          onClick={() => removeColor(index)}
-                          className="absolute -top-1 -right-1 hidden group-hover:flex w-3 h-3 items-center justify-center bg-red-500 text-white rounded-full hover:bg-red-600"
-                        >
-                          <X className="w-2 h-2" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={addColor}
-                    className="w-6 h-6 flex items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50"
-                  >
-                    <Plus className="w-3 h-3 text-gray-400" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Right Section */}
-              <div className="flex items-center gap-1 sm:gap-2">
-                <Tooltip content="Advanced Settings">
-                  <button
-                    onClick={() => setShowControls(!showControls)}
-                    className={`p-2 rounded-md transition-colors ${
-                      showControls ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Sliders className="w-4 h-4" />
-                  </button>
-                </Tooltip>
-                <Tooltip content="Generate New Pattern">
-                  <button
-                    onClick={regenerateGrid}
-                    className="p-2 text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
-                </Tooltip>
-                <div className="h-4 w-px bg-gray-200 hidden sm:block" />
-                <div className="relative">
-                  <Tooltip content="Share">
+                  <Tooltip content="Advanced Settings">
                     <button
-                      onClick={() => setShowShareMenu(!showShareMenu)}
-                      className={`p-2 rounded-md transition-colors flex items-center gap-1 ${
-                        copySuccess ? 'text-green-600' : 'text-gray-500 hover:bg-gray-50'
+                      onClick={() => setShowControls(!showControls)}
+                      className={`p-1.5 rounded-md transition-colors ${
+                        showControls ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'
                       }`}
                     >
-                      {copySuccess ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
-                      <ChevronDown className="w-3 h-3" />
+                      <Sliders className="w-4 h-4" />
                     </button>
                   </Tooltip>
-                  {showShareMenu && (
-                    <div
-                      className="absolute right-0 mt-1 py-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-50"
-                      onMouseLeave={() => setShowShareMenu(false)}
-                    >
-                      <button
-                        onClick={() => {
-                          copyUrlToClipboard(false);
-                          setShowShareMenu(false);
-                        }}
-                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        Copy URL
-                      </button>
-                      <button
-                        onClick={() => {
-                          copyUrlToClipboard(true);
-                          setShowShareMenu(false);
-                        }}
-                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        Copy Fullscreen URL
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div className="relative">
-                  <Tooltip content="Download">
-                    <button
-                      onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-                      className="p-2 text-gray-500 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-1"
-                    >
-                      <Download className="w-4 h-4" />
-                      <ChevronDown className="w-3 h-3" />
-                    </button>
-                  </Tooltip>
-                  {showDownloadMenu && (
-                    <div
-                      className="absolute right-0 mt-1 py-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-50"
-                      onMouseLeave={() => setShowDownloadMenu(false)}
-                    >
-                      <button
-                        onClick={() => {
-                          downloadSVG();
-                          setShowDownloadMenu(false);
-                        }}
-                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        SVG
-                      </button>
-                      <button
-                        onClick={() => {
-                          downloadRaster('png');
-                          setShowDownloadMenu(false);
-                        }}
-                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        PNG
-                      </button>
-                      <button
-                        onClick={() => {
-                          downloadRaster('webp');
-                          setShowDownloadMenu(false);
-                        }}
-                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        WebP
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <Tooltip content="Toggle Fullscreen">
-                  <button
-                    onClick={toggleFullscreen}
-                    className="p-2 text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
+                  <Tooltip
+                    content={
+                      isPaintMode ? 'Click rectangles to cycle through colors' : 'Enable paint mode to modify colors'
+                    }
                   >
-                    {isFullscreen ? (
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M15 3h6m0 0v6m0-6L14 10M9 21H3m0 0v-6m0 6l7-7m4-4l7-7" />
-                      </svg>
+                    <button
+                      onClick={() => setIsPaintMode(!isPaintMode)}
+                      className={`p-1.5 rounded-md transition-colors ${
+                        isPaintMode ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Paintbrush className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
+                  <Tooltip content="Generate New Pattern">
+                    <button
+                      onClick={regenerateGrid}
+                      className="p-1.5 text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
+                </div>
+
+                <div className="h-4 w-px bg-gray-200" />
+
+                <div className="flex items-center gap-1">
+                  <div className="relative">
+                    <Tooltip content="Share">
+                      <button
+                        onClick={() => setShowShareMenu(!showShareMenu)}
+                        className={`p-1.5 rounded-md transition-colors flex items-center gap-1 ${
+                          copySuccess ? 'text-green-600' : 'text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {copySuccess ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </Tooltip>
+                    {showShareMenu && (
+                      <div
+                        className="absolute right-0 mt-1 py-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-50"
+                        onMouseLeave={() => setShowShareMenu(false)}
+                      >
+                        <button
+                          onClick={() => {
+                            copyUrlToClipboard(false);
+                            setShowShareMenu(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Copy URL
+                        </button>
+                        <button
+                          onClick={() => {
+                            copyUrlToClipboard(true);
+                            setShowShareMenu(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Copy Fullscreen URL
+                        </button>
+                        <button
+                          onClick={() => {
+                            copyUrlToClipboard(false, 'svg');
+                            setShowShareMenu(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Copy SVG URL
+                        </button>
+                        <button
+                          onClick={() => {
+                            copyUrlToClipboard(false, 'png');
+                            setShowShareMenu(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Copy PNG URL
+                        </button>
+                        <button
+                          onClick={() => {
+                            copyUrlToClipboard(false, 'webp');
+                            setShowShareMenu(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Copy WebP URL
+                        </button>
+                      </div>
                     )}
+                  </div>
+                  <div className="relative">
+                    <Tooltip content="Download">
+                      <button
+                        onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                        className="p-1.5 text-gray-500 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-1"
+                      >
+                        <Download className="w-4 h-4" />
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </Tooltip>
+                    {showDownloadMenu && (
+                      <div
+                        className="absolute right-0 mt-1 py-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-50"
+                        onMouseLeave={() => setShowDownloadMenu(false)}
+                      >
+                        <button
+                          onClick={() => {
+                            downloadSVG();
+                            setShowDownloadMenu(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          SVG
+                        </button>
+                        <button
+                          onClick={() => {
+                            downloadRaster('png');
+                            setShowDownloadMenu(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          PNG
+                        </button>
+                        <button
+                          onClick={() => {
+                            downloadRaster('webp');
+                            setShowDownloadMenu(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          WebP
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <Tooltip content="Toggle Fullscreen">
+                    <button
+                      onClick={toggleFullscreen}
+                      className="p-1.5 text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
+                    >
+                      {isFullscreen ? (
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M15 3h6m0 0v6m0-6L14 10M9 21H3m0 0v-6m0 6l7-7m4-4l7-7" />
+                        </svg>
+                      )}
+                    </button>
+                  </Tooltip>
+                </div>
+
+                <div className="h-4 w-px bg-gray-200" />
+
+                {/* About Button */}
+                <Tooltip content="About">
+                  <button
+                    onClick={() => setShowAboutDialog(true)}
+                    className="p-1.5 text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
+                  >
+                    <HelpCircle className="w-4 h-4" />
                   </button>
                 </Tooltip>
-                <div className="h-4 w-px bg-gray-200 hidden sm:block" />
-                <div className="hidden sm:flex items-center gap-1">
-                  <Tooltip content="View on GitHub">
-                    <a
-                      href="https://github.com/TimMikeladze"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
-                    >
-                      <Github className="w-4 h-4" />
-                    </a>
-                  </Tooltip>
-                  <Tooltip content="Follow on X">
-                    <a
-                      href="https://twitter.com/linesofcode"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
-                    >
-                      <Twitter className="w-4 h-4" />
-                    </a>
-                  </Tooltip>
-                  <Tooltip content="Follow on Bluesky">
-                    <a
-                      href="https://bsky.app/profile/linesofcode.bsky.social"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
-                    >
-                      <ProiconsBluesky className="w-4 h-4" />
-                    </a>
-                  </Tooltip>
-                </div>
               </div>
             </div>
 
@@ -804,11 +802,14 @@ export function MondrianGenerator() {
             <div className="md:hidden border-t border-gray-200">
               <div className="px-4 py-2 flex items-center justify-between gap-4">
                 <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-[10px] font-medium text-gray-500">Complexity</label>
+                  <div className="flex justify-between">
+                    <label className="text-[10px] font-medium text-gray-500">Complexity</label>
+                    <span className="text-[10px] text-gray-400">{complexity}</span>
+                  </div>
                   <input
                     type="range"
                     min="2"
-                    max="8"
+                    max="15"
                     value={complexity}
                     onChange={(e) => {
                       const newComplexity = Number(e.target.value);
@@ -829,42 +830,19 @@ export function MondrianGenerator() {
                   />
                 </div>
                 <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-[10px] font-medium text-gray-500">Border</label>
+                  <div className="flex justify-between">
+                    <label className="text-[10px] font-medium text-gray-500">Border</label>
+                    <span className="text-[10px] text-gray-400">{borderWidth}px</span>
+                  </div>
                   <input
                     type="range"
                     min="2"
-                    max="20"
+                    max="120"
                     value={borderWidth}
                     onChange={(e) => setBorderWidth(Number(e.target.value))}
                     className="w-full h-1.5"
                   />
                 </div>
-              </div>
-              <div className="px-4 pb-2 flex items-center gap-2">
-                {colors.map((color, index) => (
-                  <div key={index} className="group relative">
-                    <input
-                      type="color"
-                      value={color}
-                      onChange={(e) => handleColorChange(index, e.target.value)}
-                      className="w-8 h-8 rounded-md cursor-pointer border border-gray-200"
-                    />
-                    {colors.length > 1 && (
-                      <button
-                        onClick={() => removeColor(index)}
-                        className="absolute -top-1 -right-1 hidden group-hover:flex w-4 h-4 items-center justify-center bg-red-500 text-white rounded-full hover:bg-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  onClick={addColor}
-                  className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50"
-                >
-                  <Plus className="w-4 h-4 text-gray-400" />
-                </button>
               </div>
             </div>
 
@@ -872,6 +850,40 @@ export function MondrianGenerator() {
             {showControls && (
               <div className="border-t border-gray-200">
                 <div className="px-4 py-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-4">
+                  {/* Mobile Colors Control */}
+                  <div className="md:hidden col-span-2">
+                    <div className="flex justify-between mb-3">
+                      <label className="text-xs font-medium text-gray-600">Colors</label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {colors.map((color, index) => (
+                        <div key={index} className="group relative">
+                          <input
+                            type="color"
+                            value={color}
+                            onChange={(e) => handleColorChange(index, e.target.value)}
+                            className="w-8 h-8 rounded-md cursor-pointer border border-gray-200"
+                          />
+                          {colors.length > 1 && (
+                            <button
+                              onClick={() => removeColor(index)}
+                              className="absolute -top-1 -right-1 flex w-3.5 h-3.5 items-center justify-center bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                              <X className="w-2 h-2" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        onClick={addColor}
+                        className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50"
+                        aria-label="Add color"
+                      >
+                        <Plus className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Generation Controls */}
                   <div>
                     <div className="flex justify-between mb-3">
@@ -881,7 +893,7 @@ export function MondrianGenerator() {
                     <input
                       type="range"
                       min="50"
-                      max="200"
+                      max="1200"
                       step="10"
                       value={minSize}
                       onChange={(e) => {
@@ -909,9 +921,9 @@ export function MondrianGenerator() {
                     </div>
                     <input
                       type="range"
-                      min="0.3"
-                      max="0.9"
-                      step="0.1"
+                      min="0.1"
+                      max="1.0"
+                      step="0.05"
                       value={splitProbability}
                       onChange={(e) => {
                         setSplitProbability(Number(e.target.value));
@@ -938,8 +950,8 @@ export function MondrianGenerator() {
                     </div>
                     <input
                       type="range"
-                      min="0.1"
-                      max="0.4"
+                      min="0.05"
+                      max="0.45"
                       step="0.05"
                       value={minSplitRatio}
                       onChange={(e) => {
@@ -967,8 +979,8 @@ export function MondrianGenerator() {
                     </div>
                     <input
                       type="range"
-                      min="0.6"
-                      max="0.9"
+                      min="0.55"
+                      max="0.95"
                       step="0.05"
                       value={maxSplitRatio}
                       onChange={(e) => {
@@ -998,7 +1010,7 @@ export function MondrianGenerator() {
                     <input
                       type="range"
                       min="0"
-                      max="40"
+                      max="300"
                       value={externalBorderWidth}
                       onChange={(e) => setExternalBorderWidth(Number(e.target.value))}
                       className="w-full"
@@ -1013,7 +1025,7 @@ export function MondrianGenerator() {
                     <input
                       type="range"
                       min="0"
-                      max="40"
+                      max="300"
                       value={borderRadius}
                       onChange={(e) => setBorderRadius(Number(e.target.value))}
                       className="w-full"
@@ -1049,7 +1061,7 @@ export function MondrianGenerator() {
           <svg
             id="mondrian-svg"
             viewBox="0 0 100 100"
-            className="w-full h-full"
+            className={`w-full h-full ${isPaintMode ? 'cursor-pointer' : ''}`}
             preserveAspectRatio="xMidYMid slice"
             style={{
               border: `${externalBorderWidth}px solid ${borderColor}`,
@@ -1066,16 +1078,20 @@ export function MondrianGenerator() {
                 fill={cell.color}
                 stroke={borderColor}
                 strokeWidth={borderWidth / 20}
+                onClick={() => handleRectClick(cell.id)}
+                className={isPaintMode ? 'hover:opacity-90 transition-opacity' : ''}
               />
             ))}
           </svg>
           {isFullscreen && showFullscreenHint && (
             <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg pointer-events-none opacity-0 animate-fade-in-out">
-              Press ESC or swipe down to exit
+              {isPaintMode ? 'Click rectangles to change colors' : 'Press ESC or swipe up/down to exit'}
             </div>
           )}
         </div>
       </div>
+
+      <AboutDialog isOpen={showAboutDialog} onClose={() => setShowAboutDialog(false)} />
     </div>
   );
 }
