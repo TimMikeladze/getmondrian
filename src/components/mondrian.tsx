@@ -1,6 +1,7 @@
 import {
   Check,
   ChevronDown,
+  Coffee,
   Download,
   Github,
   HelpCircle,
@@ -137,14 +138,14 @@ function AboutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="flex justify-between items-start">
-            <h2 className="text-xl font-bold text-gray-900">About</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">About</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="mt-4 text-gray-600 space-y-4">
+          <div className="mt-4 text-gray-600 space-y-4 text-sm sm:text-base">
             <p>
               Mondrian is an art generator inspired by the works of{' '}
               <a
@@ -163,9 +164,8 @@ function AboutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
               complexity, colors, and border styles. Each pattern is unique and can be shared or downloaded in multiple
               formats.
             </p>
-            <div className="pt-2">
-              <div className="text-xs font-medium text-gray-900 mb-3">Follow me at</div>
-              <div className="flex items-center gap-3">
+            <div className="mt-8 space-y-4 px-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <a
                   href="https://github.com/TimMikeladze"
                   target="_blank"
@@ -203,6 +203,23 @@ function AboutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
                     <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                   </svg>
                   <span className="text-sm">LinkedIn</span>
+                </a>
+              </div>
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center"></div>
+              </div>
+              <div>
+                <a
+                  href="https://www.buymeacoffee.com/linesofcode"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-yellow-400 text-gray-900 font-medium rounded text-sm w-full"
+                >
+                  <Coffee className="w-4 h-4" />
+                  <span>Buy me a coffee</span>
                 </a>
               </div>
             </div>
