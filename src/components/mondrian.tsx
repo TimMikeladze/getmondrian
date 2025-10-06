@@ -13,7 +13,7 @@ import {
   Twitter,
   X,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DEFAULT_COLORS, generateGrid, getValidColor, MondrianState } from '@/lib/mondrian';
 import { DEFAULT_VALUES, parseUrlParams, stateToUrlParams } from '@/lib/url-params';
@@ -230,7 +230,29 @@ function AboutDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   );
 }
 
+function useDebouncedUrlUpdate(delay: number = 300) {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedUrlUpdate = useCallback(
+    (state: MondrianState) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        const params = stateToUrlParams(state);
+        window.history.replaceState(null, '', params ? `?${params}` : window.location.pathname);
+      }, delay);
+    },
+    [delay]
+  );
+
+  return debouncedUrlUpdate;
+}
+
 export function MondrianGenerator() {
+  const debouncedUrlUpdate = useDebouncedUrlUpdate();
+
   // Get initial state from URL if available
   const initialState = (() => {
     if (typeof window === 'undefined') return {};
@@ -291,7 +313,7 @@ export function MondrianGenerator() {
     return generateGrid(complexity, initialColors, minSplitRatio, maxSplitRatio, splitProbability, minSize, gridSeed);
   });
 
-  // Update URL when state changes
+  // Update URL when state changes (debounced)
   useEffect(() => {
     const state: MondrianState = {
       complexity,
@@ -308,8 +330,7 @@ export function MondrianGenerator() {
       fullscreen: isFullscreen,
       title,
     };
-    const params = stateToUrlParams(state);
-    window.history.replaceState(null, '', params ? `?${params}` : window.location.pathname);
+    debouncedUrlUpdate(state);
   }, [
     complexity,
     colors,
@@ -324,6 +345,7 @@ export function MondrianGenerator() {
     seed,
     isFullscreen,
     title,
+    debouncedUrlUpdate,
   ]);
 
   // Handle keyboard events for exiting fullscreen
@@ -802,6 +824,18 @@ export function MondrianGenerator() {
                 </div>
 
                 <div className="h-4 w-px bg-gray-200" />
+
+                {/* GitHub Button */}
+                <Tooltip content="View on GitHub">
+                  <a
+                    href="https://github.com/TimMikeladze/getmondrian"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
+                  >
+                    <Github className="w-4 h-4" />
+                  </a>
+                </Tooltip>
 
                 {/* About Button */}
                 <Tooltip content="About">
